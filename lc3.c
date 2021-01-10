@@ -18,16 +18,16 @@ uint16_t memory[MEMORY];
 // Enumerator type for registers and register count
 enum
 {
-    R_R0 = 0,  // Register R0
-    R_R1,  // Register R1
-    R_R2,  // Register R2
-    R_R3,  // Register R3
-    R_R4,  // Register R4
-    R_R5,  // Register R5
-    R_R6,  // Register R6
-    R_R7,  // Register R7
-    R_PC,  // Register PC
-    R_COND,  // Register COND
+    R_R0 = 0,       // Register R0
+    R_R1,           // Register R1
+    R_R2,           // Register R2
+    R_R3,           // Register R3
+    R_R4,           // Register R4
+    R_R5,           // Register R5
+    R_R6,           // Register R6
+    R_R7,           // Register R7
+    R_PC,           // Register PC
+    R_COND,         // Register COND
     REGISTER_COUNT  // Count of registers
 };
 
@@ -38,21 +38,21 @@ uint16_t registers[REGISTER_COUNT];
 enum
 {
     OP_BR = 0,  // Branch
-    OP_ADD,  // Addition
-    OP_LD,  // Load
-    OP_ST,  // Store
-    OP_JSR,  // Jump register
-    OP_AND,  // And operator
-    OP_LDR,  // Load register
-    OP_STR,  // Load effective address
-    OP_RTI,
-    OP_NOT,  // Not operator
-    OP_LDI,  // Load indirect
-    OP_STI,  // Store indirect
-    OP_JMP,  // Jump
-    OP_RES,
-    OP_LEA,  // Load Effective address
-    OP_TRAP  // Trap
+    OP_ADD,     // Addition
+    OP_LD,      // Load
+    OP_ST,      // Store
+    OP_JSR,     // Jump register
+    OP_AND,     // And operator
+    OP_LDR,     // Load register
+    OP_STR,     // Load effective address
+    OP_RTI,     // Return from interrupt
+    OP_NOT,     // Not operator
+    OP_LDI,     // Load indirect
+    OP_STI,     // Store indirect
+    OP_JMP,     // Jump
+    OP_RES,     // Reserve memory directive
+    OP_LEA,     // Load effective address
+    OP_TRAP     // Trap
 };
 
 // Enumerator type for flags
@@ -60,79 +60,93 @@ enum
 {
     FL_POS = 1 << 0,  // Positive flag
     FL_ZRO = 1 << 1,  // Zero flag
-    FL_NEG = 1 << 2  // Negative flag
+    FL_NEG = 1 << 2   // Negative flag
 };
 
 // Trap codes
 enum
 {
-    TRAP_GETC = 0x20,  // Input character
-    TRAP_OUT = 0x21,  // Output character
-    TRAP_PUTS = 0x22,  // Output word string
-    TRAP_IN = 0x23,  // Input character
-    TRAP_PUTSP = 0x24,  // Output byte string
-    TRAP_HALT = 0x25  // Halt the program
+    TRAP_GETC = 0x20,   // Input a character
+    TRAP_OUT = 0x21,    // Output a character
+    TRAP_PUTS = 0x22,   // Output a word string
+    TRAP_IN = 0x23,     // Input a character
+    TRAP_PUTSP = 0x24,  // Output a byte string
+    TRAP_HALT = 0x25    // Halt the program
 };
 
 // Memory mapped registers
 enum
 {
     MR_KBSR = 0xFE00,  // Keyboard status register
-    MR_KBDR = 0xFE02  // Keyboard data register
+    MR_KBDR = 0xFE02   // Keyboard data register
 };
 
 // Running status
 bool running = false;
 
-// Swap function
-uint16_t swap16(uint16_t x)
+// Swap word function
+uint16_t swap_word(uint16_t x)
 {
-    return (x << 8) | (x >> 8);  // Swap byte
+    // Swap byte
+    return (x << 8) | (x >> 8);
 }
 
 //Read image file function
 uint16_t read_image_file(FILE* file)
 {
+    // Origin
+    uint16_t origin;
 
-    uint16_t origin;  // Origin
+    // Read origin address from the program file
+    fread(&origin, sizeof(origin), 1, file);
+    // Swap bytes
+    origin = swap_word(origin);
 
-    fread(&origin, sizeof(origin), 1, file);  // Read origin address from the program file
-    origin = swap16(origin);  // Swap bytes
-
-    uint16_t maximum_read = MEMORY - origin;  // Calculate maximum reading size
-    uint16_t *pointer = memory + origin;  // Program start pointer
-    size_t read = fread(pointer, sizeof(uint16_t), maximum_read, file);  // Reading instructions and data
+    // Calculate maximum reading size
+    uint16_t maximum_read = MEMORY - origin;
+    // Program start pointer
+    uint16_t *pointer = memory + origin;
+    // Reading instructions and data
+    size_t read = fread(pointer, sizeof(uint16_t), maximum_read, file);
 
     // Swapping instructions and data
     while(read-- > 0)
     {
-        *pointer = swap16(*pointer);  // Word swap
-        ++pointer;  // Increment the pointer
+        // Word swap
+        *pointer = swap_word(*pointer);
+        // Increment the pointer
+        pointer++;
     }
 }
 
-//Read image function
+// Read image function
 uint16_t read_image(const char* image_path)
 {
-    FILE* file = fopen(image_path, "rb");  // Open the program file
+    // Open the program file
+    FILE* file = fopen(image_path, "rb");
 
     // If the file is not open
     if(!file)
     {
-        return false;  // Returning false status
+        // Returning false status
+        return false;
     }
 
-    read_image_file(file);  // Reading file
+    // Reading file
+    read_image_file(file);
 
-    fclose(file);  // Close file
+    // Close file
+    fclose(file);
 
-    return true;  // Returning true status
+    // Returning true status
+    return true;
 }
 
 // Memory write function
 uint16_t memory_write(uint16_t address, uint16_t value)
 {
-    return memory[address] = value;  // Write value to the address of the memory
+    // Write value to the address of the memory
+    return memory[address] = value;
 }
 
 // Memory read function
@@ -143,13 +157,16 @@ uint16_t memory_read(uint16_t address)
     {
         // Case of keyboard status register
         case MR_KBSR:
-            memory[MR_KBSR] = (1 << 15);  // Write keynoard status to memory
-            memory[MR_KBDR] = getchar();  // Write character from keyboard to memory
+            // Write keynoard status to memory
+            memory[MR_KBSR] = (1 << 15);
+            // Write character from keyboard to memory
+            memory[MR_KBDR] = getchar();
 
             break;  // Break
     }
 
-    return memory[address];  // Return character
+    // Return character
+    return memory[address];
 }
 
 // Update flags function
@@ -158,17 +175,20 @@ void update_flags(uint16_t register_value)
     // If the register value equals to zero
     if (registers[register_value] == 0)
     {
-        registers[R_COND] = FL_ZRO;  // Set flag zero
+        // Set flag zero
+        registers[R_COND] = FL_ZRO;
     }
     // If the register has negative value
-    else if(registers[register_value] << 15)
+    else if(registers[register_value] >> 15)
     {
-        registers[R_COND] = FL_NEG;    // Set flag negative
+        // Set flag negative
+        registers[R_COND] = FL_NEG;
     }
     // If the register has positive value
     else
     {
-        registers[R_COND] = FL_POS;    // Set flag positive
+        // Set flag positive
+        registers[R_COND] = FL_POS;
     }
 }
 
@@ -178,10 +198,12 @@ uint16_t sign_extend(uint16_t value, int bit_count)
     // If the value sign is set
     if((value >> (bit_count - 1) & 1))
     {
-        value |= (0xFFFF << bit_count);  // Shift sign bit
+        // Shift sign bit
+        value |= (0xFFFF << bit_count);
     }
 
-    return value;  // Return new value
+    // Return new value
+    return value;
 }
 
 // Main function of the program
@@ -193,27 +215,35 @@ int main(int argc, char* argv[])
         // If not read image file
         if(!read_image(argv[1]))
         {
-            fprintf(stderr, "Failed to load this image! Exiting!");  // Print the error message
+            // Print the error message
+            fprintf(stderr, "Failed to load this image! Exiting!");
 
-            return 1;  // Exit
+            // Exit with "failed to load this image" error
+            return 2;
         }
     }
     else
     {
-        fprintf(stderr, "Wrong argument count! Exiting!");  // Print the error message
+        // Print the error message
+        fprintf(stderr, "Wrong argument count! Exiting!");
 
-        return 1; // Exit
+        // Exit with "wrong argument count" error
+        return 1;
     }
 
-    registers[R_PC] = 0X3000;  // Start program
+    // Start program
+    registers[R_PC] = 0X3000;
 
-    running = true;  // Set running status
+    // Set running status
+    running = true;
 
     // Running loop
     while(running)
     {
-        uint16_t instruction = memory_read(registers[R_PC]++);  // Get instruction
-        uint16_t operand = instruction >> 12;  // Get operand
+        // Get instruction
+        uint16_t instruction = memory_read(registers[R_PC]++);
+        // Get operand
+        uint16_t operand = instruction >> 12;
 
         // Operand switch
         switch(operand)
@@ -221,196 +251,270 @@ int main(int argc, char* argv[])
             // Case of ADD operand
             case OP_ADD:
             {
-                uint16_t r0 = (instruction >> 9) & 0x7;  // Get the first register
-                uint16_t r1 = (instruction >> 6) & 0x7;  // Get the second register
-                uint16_t immediate_mode_flag = (instruction >> 5) & 0x1;  // Get the imm value
+                // Get the first register
+                uint16_t r0 = (instruction >> 9) & 0x7;
+                // Get the second register
+                uint16_t r1 = (instruction >> 6) & 0x7;
+                // Get the imm value
+                uint16_t immediate_mode_flag = (instruction >> 5) & 0x1;
 
                 // If imm is set
                 if(immediate_mode_flag)
                 {
-                    uint16_t imm5 = sign_extend(instruction & 0x1F, 5);  // Get the imm5 value
+                    // Get the imm5 value
+                    uint16_t imm5 = sign_extend(instruction & 0x1F, 5);
 
-                    registers[r0] = registers[r1] + imm5;  // Addition
+                    // Addition
+                    registers[r0] = registers[r1] + imm5;
                 }
                 // If imm is not set
                 else
                 {
-                    uint16_t r2 = instruction & 0x7;  // Get the third register
-                    registers[r0] = registers[r1] + registers[r2];  // Addition
+                    // Get the third register
+                    uint16_t r2 = instruction & 0x7;
+                    // Addition
+                    registers[r0] = registers[r1] + registers[r2];
                 }
 
-                update_flags(r0);  // Update flags
+                // Update flags
+                update_flags(r0);
 
+                // Break
                 break;
             }
             // Case of AND operand
             case OP_AND:
             {
-                uint16_t r0 = (instruction >> 9) & 0x7;  // Get the first register
-                uint16_t r1 = (instruction >> 6) & 0x7;  // Get the second register
-                uint16_t immediate_mode_flag = (instruction >> 5) & 0x1;  // Get the imm value
+                // Get the first register
+                uint16_t r0 = (instruction >> 9) & 0x7;
+                // Get the second register
+                uint16_t r1 = (instruction >> 6) & 0x7;
+                // Get the imm value
+                uint16_t immediate_mode_flag = (instruction >> 5) & 0x1;
 
                 // If imm is set
                 if(immediate_mode_flag)
                 {
-                    uint16_t imm5 = sign_extend(instruction & 0x1F, 5);  // Get the imm5 value
+                    // Get the imm5 value
+                    uint16_t imm5 = sign_extend(instruction & 0x1F, 5);
 
-                    registers[r0] = registers[r1] & imm5;  // Addition
+                    // Addition
+                    registers[r0] = registers[r1] & imm5;
                 }
+                // If imm is not set
                 else
                 {
-                    uint16_t r2 = instruction & 0x7;  // Get the third register
-                    registers[r0] = registers[r1] & registers[r2];  // Addition
+                    // Get the third register
+                    uint16_t r2 = instruction & 0x7;
+                    // Addition
+                    registers[r0] = registers[r1] & registers[r2];
                 }
 
-                update_flags(r0);  // Update flags
+                // Update flags
+                update_flags(r0);
 
+                // Break
                 break;
             }
             // Case of NOT operand
             case OP_NOT:
             {
-                uint16_t r0 = (instruction >> 9) & 0x7;  // Get the the first register
-                uint16_t r1 = (instruction >> 6) & 0x7;  // Get the second register
+                // Get the the first register
+                uint16_t r0 = (instruction >> 9) & 0x7;
+                // Get the second register
+                uint16_t r1 = (instruction >> 6) & 0x7;
 
-                registers[r0] = ~registers[r1];  // Take the reciprocal
+                // Take the reciprocal
+                registers[r0] = ~registers[r1];
 
-                update_flags(r0);  // Update flags
+                // Update flags
+                update_flags(r0);
 
-                break;  // Break
+                // Break
+                break;
             }
             // Case of BR operand
             case OP_BR:
             {
-                uint16_t offset = sign_extend(instruction & 0X1FF, 9);  // Get program counter offset
-                uint16_t conditional_flag = (instruction >> 9) & 0x7;  // Get conditional flag
+                // Get program counter offset
+                uint16_t offset = sign_extend(instruction & 0x1FF, 9);
+                // Get conditional flag
+                uint16_t conditional_flag = (instruction >> 9) & 0x7;
 
                 // If conditional flag and R_COND are value one
                 if(conditional_flag & registers[R_COND])
                 {
-                    registers[R_PC] += offset;  // Set the program counter as the offset
+                    // Set the program counter as the offset
+                    registers[R_PC] += offset;
                 }
 
-                break;  // Break
+                // Break
+                break;
             }
             // Case of JMP operand
             case OP_JMP:
             {
-                uint16_t r1 = (instruction >> 6) & 0x7;  // Get the register
-                registers[R_PC] = registers[r1];  // Set the program counter as the address
+                // Get the register
+                uint16_t r1 = (instruction >> 6) & 0x7;
+                 // Set the program counter as the address
+                registers[R_PC] = registers[r1];
 
-                break;  // Break
+                // Break
+                break;
             }
             // Case of JSR operand
             case OP_JSR:
             {
-                uint16_t long_flag = (instruction >> 11) & 1;  // Get long flag
-                registers[R_R7] = registers[R_PC];  // Store the address of the program counter
+                // Get long flag
+                uint16_t long_flag = (instruction >> 11) & 1;
+                // Store the address of the program counter
+                registers[R_R7] = registers[R_PC];
 
                 // If long flag is set
                 if(long_flag)
                 {
-                    uint16_t long_offset = sign_extend(instruction & 0x7FF, 11);  // Get long offset
-                    registers[R_PC] += long_offset;  // Set the program counter as the long offset
+                    // Get long offset
+                    uint16_t long_offset = sign_extend(instruction & 0x7FF, 11);
+                    // Set the program counter as the long offset
+                    registers[R_PC] += long_offset;
                 }
                 // If long flag is not set
                 else
                 {
-                    uint16_t r1 = (instruction >> 6) & 0x7;  // Get the register
-                    registers[R_PC] = registers[r1];  // Set the program counter as the address
+                    // Get the register
+                    uint16_t r1 = (instruction >> 6) & 0x7;
+                    // Set the program counter as the address
+                    registers[R_PC] = registers[r1];
                 }
 
-                break;  // Break
+                // Break
+                break;
             }
             // Case of LD operand
             case OP_LD:
             {
-                uint16_t r0 = (instruction >> 9) & 0x7;  // Get the register
-                uint16_t offset = sign_extend(instruction & 0x1FF, 9);  // Get offset
+                // Get the register
+                uint16_t r0 = (instruction >> 9) & 0x7;
+                // Get offset
+                uint16_t offset = sign_extend(instruction & 0x1FF, 9);
 
-                registers[r0] = memory_read(registers[R_PC] + offset);  // Set the register as the offset
+                // Set the register as the offset
+                registers[r0] = memory_read(registers[R_PC] + offset);
 
-                update_flags(r0);  // Update flags
+                // Update flags
+                update_flags(r0);
 
-                break;  // Break
+                // Break
+                break;
             }
             // Case of LDI operand
             case OP_LDI:
             {
-                uint16_t r0 = (instruction >> 9) & 0x7;  // Get the register
+                // Get the register
+                uint16_t r0 = (instruction >> 9) & 0x7;
 
-                uint16_t offset = sign_extend(instruction & 0x1FF, 9);  // Get offset
+                // Get offset
+                uint16_t offset = sign_extend(instruction & 0x1FF, 9);
 
-                registers[r0] = memory_read(memory_read(registers[R_PC] + offset));  // Set the register as the offset
+                // Set the register as the offset
+                registers[r0] = memory_read(memory_read(registers[R_PC] + offset));
 
-                update_flags(r0);  // Update flags
+                // Update flags
+                update_flags(r0);
 
-                break;  // Break
+                // Break
+                break;
             }
             // Case of LDR operand
             case OP_LDR:
             {
-                uint16_t r0 = (instruction >> 9) & 0x7;  // Get the first register
-                uint16_t r1 = (instruction >> 6) & 0x7;  // Get the second register
-                uint16_t offset = sign_extend(instruction & 0x3F, 6);  // Calculate the offset
+                // Get the first register
+                uint16_t r0 = (instruction >> 9) & 0x7;
+                // Get the second register
+                uint16_t r1 = (instruction >> 6) & 0x7;
+                // Calculate the offset
+                uint16_t offset = sign_extend(instruction & 0x3F, 6);
 
-                registers[r0] = memory_read(r1) + offset;  // Set the register as the offset
+                // Set the register as the offset
+                registers[r0] = memory_read(r1) + offset;
 
-                update_flags(r0);  // Update flags
+                // Update flags
+                update_flags(r0);
 
-                break;  // Break
+                // Break
+                break;
             }
             // Case of LEA operand
             case OP_LEA:
             {
-                uint16_t r0 = (instruction >> 9) & 0x7;  // Get the first register
-                uint16_t offset = sign_extend(instruction & 0x1FF, 9);  // Calculate the offset
+                // Get the first register
+                uint16_t r0 = (instruction >> 9) & 0x7;
+                // Calculate the offset
+                uint16_t offset = sign_extend(instruction & 0x1FF, 9);
 
-                registers[r0] = registers[R_PC] + offset;  // Set the register as the offset
+                // Set the register as the offset
+                registers[r0] = registers[R_PC] + offset;
 
-                update_flags(r0);  // Update flags
+                // Update flags
+                update_flags(r0);
 
-                break;  // Break
+                // Break
+                break;
             }
             // Case of ST operand
             case OP_ST:
             {
-                uint16_t r0 = (instruction >> 9) & 0x7;  // Get the register
-                uint16_t offset = sign_extend(instruction & 0x1FF, 9);  // Calculate the offset
+                // Get the register
+                uint16_t r0 = (instruction >> 9) & 0x7;
+                // Calculate the offset
+                uint16_t offset = sign_extend(instruction & 0x1FF, 9);
 
-                memory_write(registers[R_PC] + offset, registers[r0]);  // Set the memory as the value
+                // Set the memory as the value
+                memory_write(registers[R_PC] + offset, registers[r0]);
 
-                break;  // Break
+                // Break
+                break;
             }
             // Case of STI operand
             case OP_STI:
             {
-                uint16_t r0 = (instruction >> 9) & 0x7;  // Get the register
-                uint16_t offset = sign_extend(instruction & 0x1FF, 9);  // Calculate the offset
+                // Get the register
+                uint16_t r0 = (instruction >> 9) & 0x7;
+                // Calculate the offset
+                uint16_t offset = sign_extend(instruction & 0x1FF, 9);
 
-                memory_write(memory_read(registers[R_PC] + offset), registers[r0]);  // Set the memory as the value
+                // Set the memory as the value
+                memory_write(memory_read(registers[R_PC] + offset), registers[r0]);
 
-                break;  // Break
+                // Break
+                break;
             }
             // Case of STR operand
             case OP_STR:
             {
-                uint16_t r0 = (instruction >> 9) & 0x7;  // Get the first register
-                uint16_t r1 = (instruction >> 6) & 0x7;  // Get the second register
-                uint16_t offset = sign_extend(instruction & 0x3F, 6);  // Calculate the offset
+                // Get the first register
+                uint16_t r0 = (instruction >> 9) & 0x7;
+                // Get the second register
+                uint16_t r1 = (instruction >> 6) & 0x7;
+                // Calculate the offset
+                uint16_t offset = sign_extend(instruction & 0x3F, 6);
 
-                memory_write(registers[r1] + offset, registers[r0]);  // Set the memory as the value
+                // Set the memory as the value
+                memory_write(registers[r1] + offset, registers[r0]);
 
-                break;  // Break
+                // Break
+                break;
             }
             // Case of RES operand
             case OP_RES:
             // Case of RTI operand
             case OP_RTI:
             {
-                fprintf(stderr, "Unused operand code! Exiting!");  // Print error message
+                // Print error message
+                fprintf(stderr, "Unused operand code! Exiting!");
 
-                return 3;  // Exit
+                // Exit with "unused operand code" error
+                return 4;
             }
             // Case of TRAP operand
             case OP_TRAP:
@@ -421,91 +525,124 @@ int main(int argc, char* argv[])
                     // Case of TRAP_GETC
                     case TRAP_GETC:
                     {
-                        registers[R_R0] = (uint16_t)getchar();  // Get the character
-                        fflush(stdout);  // Flush standard output
+                        // Get the character
+                        registers[R_R0] = (uint16_t)getchar();
+                        // Flush standard output
+                        fflush(stdout);
 
-                        break;  // Break
+                        // Break
+                        break;
                     }
                     // Case of TRAP_OUT
                     case TRAP_OUT:
                     {
-                        putc((char)registers[R_R0], stdout);  // Print the character
+                        // Print the character
+                        putc((char)registers[R_R0], stdout);
 
-                        break;  // Break
+                        // Break
+                        break;
                     }
                     // Case of TRAP_PUTS
                     case TRAP_PUTS:
                     {
-                        uint16_t* character = memory + registers[R_R0];  // Get the string
+                        // Get the string
+                        uint16_t* character = memory + registers[R_R0];
 
                         // Print loop
                         while(*character)
                         {
-                            putc((char)*character, stdout);  // Print the character
-                            ++character;  // Increment character offset
+                            // Print the character
+                            putc((char)*character, stdout);
+                            // Increment character offset
+                            character++;
                         }
 
-                        fflush(stdout);  // Flush standard output
+                        // Flush standard output
+                        fflush(stdout);
 
-                        break;  // Break
+                        // Break
+                        break;
                     }
                     // Case of TRAP_IN
                     case TRAP_IN:
                     {
-                        char character = getchar();  // Get the character
+                        // Get the character
+                        char character = getchar();
 
-                        putc(character, stdout);  // Print the character
+                        // Print the character
+                        putc(character, stdout);
 
-                        registers[R_R0] = (uint16_t)character;  // Set the register as the character
+                        // Set the register as the character
+                        registers[R_R0] = (uint16_t)character;
 
-                        break;  // Break
+                        // Break
+                        break;
                     }
                     // Case of TRAP_PUTSP
                     case TRAP_PUTSP:
                     {
-                        uint16_t* character = memory + registers[R_R0];  // Get the character
+                        // Get the character
+                        uint16_t* character = memory + registers[R_R0];
 
                         // Print loop
                         while(*character)
                         {
-                            char char_1 = (*character) & 0xFF;  // Get first character
-                            putc(char_1, stdout);  // Print first character
+                            // Get first character
+                            char char_1 = (*character) & 0xFF;
+                            // Print first character
+                            putc(char_1, stdout);
 
-                            char char_2 = (*character) >> 8;  // Get second character
+                            // Get second character
+                            char char_2 = (*character) >> 8;
+
                             // If second character is not null
                             if(char_2)
                             {
-                                putc(char_2, stdout);  // Print second character
+                                // Print second character
+                                putc(char_2, stdout);
                             }
 
-                            ++character;  // Increment character offset
+                            // Increment character offset
+                            character++;
                         }
 
-                        fflush(stdout);  // Flush standard output
+                        // Flush standard output
+                        fflush(stdout);
 
-                        break;  // Break
+                        // Break
+                        break;
                     }
                     // Case of TRAP_HALT
                     case TRAP_HALT:
                     {
-                        fflush(stdout);  // Flush standard output
+                        // Flush standard output
+                        fflush(stdout);
 
-                        running = false;  // Stop program
+                        // Stop program
+                        running = false;
 
-                        break;  // Break
+                        // Print error message
+                        fprintf(stderr, "The program has been ended! Exiting!");
+
+                        // Break
+                        break;
                     }
                 }
 
-                break;  // Break
+                // Break
+                break;
             }
             default:
             {
-                fprintf(stderr, "Bad opcode error! Exiting!");  // Print error message
+                // Print error message
+                fprintf(stderr, "Bad opcode error! Exiting!");
 
-                return 2;  // Exit
+                // Exit with "bad opcode" error
+                return 3;
             }
         }
     }
 
-    return 0;  // Exit
+    // Exit with normal status
+    return 0;
 }
